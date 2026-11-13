@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROJETO ÍRIS</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2305070a' stroke='%233ee6d8' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='8' fill='%23ff2b3d'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%23000'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<!-- ================= HUD ================= -->
+<div id="hud" class="hidden">
+  <div id="hudTL">
+    <div id="sectorLabel">SETOR 01 · DESPERTAR</div>
+    <div id="objective">—</div>
+  </div>
+  <div id="hudTC">
+    <div id="enigma"></div>
+    <div id="fragCount">FRAGMENTOS 0/3</div>
+  </div>
+  <canvas id="minimap" width="170" height="170"></canvas>
+  <div id="handBox">
+    <canvas id="handCam" width="170" height="128"></canvas>
+    <div id="handLbl">PROCURANDO MÃO...</div>
+  </div>
+  <div class="edge" id="edgeL"></div><div class="edge" id="edgeR"></div>
+  <div class="edge" id="edgeU"></div><div class="edge" id="edgeD"></div>
+
+  <div id="crosshair"><i></i><i></i><i></i><i></i><b></b></div>
+  <div id="hitmarker"></div>
+  <div id="dmgIndicator"></div>
+  <div id="prompt"></div>
+  <div id="toast"></div>
+
+  <div id="hudBL">
+    <div class="lbl">INTEGRIDADE NEURAL</div>
+    <div class="bar"><div id="hpFill"></div></div>
+    <div id="hpText">100</div>
+  </div>
+  <div id="hudBR">
+    <div class="lbl">EMISSOR ÓPTICO</div>
+    <div class="bar heat"><div id="heatFill"></div></div>
+    <div class="lbl small" id="dashLbl">ESQUIVA PRONTA</div>
+  </div>
+
+  <div id="bossBar">
+    <div class="name">ÍRIS · NÚCLEO CENTRAL</div>
+    <div class="bar"><div id="bossFill"></div></div>
+  </div>
+
+  <div id="dialog"><div class="who"></div><div class="text"></div></div>
+  <div id="memory"><div class="label"></div><div class="text"></div></div>
+
+  <div id="hurtVignette"></div>
+  <div id="healVignette"></div>
+</div>
+
+<div id="scanlines"></div>
+
+<!-- ================= TELAS ================= -->
+
+<!-- splash -->
+<div id="splash" class="screen show">
+  <div class="eye big"><div class="iris"><div class="pupil"></div></div></div>
+  <h1>PROJETO <span>ÍRIS</span></h1>
+  <p class="blink">CLIQUE PARA CONECTAR</p>
+  <p class="note">use fones de ouvido · tela cheia recomendada (F11)</p>
+</div>
+
+<!-- menu principal -->
+<div id="menu" class="screen">
+  <div class="eye"><div class="iris"><div class="pupil"></div></div></div>
+  <h1>PROJETO <span>ÍRIS</span></h1>
+  <div class="subtitle">A MEMÓRIA NÃO É SUA</div>
+  <div class="menuList">
+    <button data-act="new">NOVO JOGO</button>
+    <button data-act="chapters" id="btnChapters">CAPÍTULOS</button>
+    <button data-act="controls">CONTROLES</button>
+    <button data-act="options">OPÇÕES</button>
+    <button data-act="credits">CRÉDITOS</button>
+  </div>
+  <div id="endingsSeen"></div>
+</div>
+
+<!-- painel genérico (controles / opções / créditos / capítulos) -->
+<div id="panel" class="screen">
+  <div class="panelBox">
+    <h2 id="panelTitle">—</h2>
+    <div id="panelBody"></div>
+    <button id="panelBack">VOLTAR</button>
+  </div>
+</div>
+
+<!-- intro -->
+<div id="intro" class="screen">
+  <div id="introText"></div>
+  <div class="skip">[ESPAÇO] pular · [CLIQUE] avançar</div>
+</div>
+
+<!-- cartão do setor -->
+<div id="card" class="screen">
+  <div class="cardCode" id="cardCode">SETOR 01</div>
+  <h2 id="cardName">DESPERTAR</h2>
+  <p id="cardText"></p>
+  <div class="cardObj" id="cardObj"></div>
+  <p class="blink" id="cardGo">CLIQUE PARA ENTRAR NA SIMULAÇÃO</p>
+</div>
+
+<!-- pausa -->
+<div id="pause" class="screen dim">
+  <h2>SIMULAÇÃO <span>PAUSADA</span></h2>
+  <div id="pauseInfo"></div>
+  <div class="menuList">
+    <button data-act="resume">CONTINUAR</button>
+    <button data-act="restart">REINICIAR SETOR</button>
+    <button data-act="controls">CONTROLES</button>
+    <button data-act="options">OPÇÕES</button>
+    <button data-act="quit">MENU PRINCIPAL</button>
+  </div>
+  <p class="note" id="lockNote"></p>
+</div>
+
+<!-- terminal -->
+<div id="terminal" class="screen dim">
+  <div class="termBox">
+    <div class="termHead"><span>ÍRIS // TERMINAL DE REGISTRO</span><span id="termCount"></span></div>
+    <h3 id="termTitle"></h3>
+    <pre id="termBody"></pre>
+    <div class="termFoot">[E] FECHAR</div>
+  </div>
+</div>
+
+<!-- teclado numérico -->
+<div id="keypad" class="screen dim">
+  <div class="keyBox">
+    <div class="termHead"><span>PAINEL DE ACESSO · ALA DE ARQUIVO</span></div>
+    <div id="keySlots"><span></span><span></span><span></span><span></span></div>
+    <div id="keyMsg">DIGITE O CÓDIGO DE 4 DÍGITOS NO TECLADO</div>
+    <div class="termFoot">[0-9] DIGITAR · [BACKSPACE] APAGAR · [ENTER] CONFIRMAR · [E] SAIR</div>
+  </div>
+</div>
+
+<!-- morte -->
+<div id="dead" class="screen dim red">
+  <h2>SINAL NEURAL <span>PERDIDO</span></h2>
+  <p id="deadQuote"></p>
+  <div class="menuList">
+    <button data-act="retry">TENTAR NOVAMENTE</button>
+    <button data-act="quit">MENU PRINCIPAL</button>
+  </div>
+</div>
+
+<!-- escolha final -->
+<div id="choice" class="screen">
+  <div id="choiceIntro"></div>
+  <div id="choiceList"></div>
+</div>
+
+<!-- final -->
+<div id="ending" class="screen">
+  <div id="endTitle"></div>
+  <div id="endText"></div>
+  <div id="endTag"></div>
+  <div id="endStats"></div>
+  <div class="menuList row" id="endButtons">
+    <button data-act="new">JOGAR NOVAMENTE</button>
+    <button data-act="quit">MENU PRINCIPAL</button>
+  </div>
+</div>
+
+<div id="fade"></div>
+
+<script src="js/lib/three.min.js"></script>
+<script src="js/story.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/hands.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
